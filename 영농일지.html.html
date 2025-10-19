@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌾 음성 기반 영농일지 시스템</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-green-50 to-blue-50 min-h-screen">
+    <div id="app" class="p-4 md:p-6">
+        <div class="max-w-6xl mx-auto">
+            <!-- 헤더 -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+                <h1 class="text-2xl md:text-3xl font-bold text-green-700 mb-2">🌾 음성 기반 영농일지 시스템</h1>
+                <p class="text-gray-600 text-sm md:text-base">음성이나 텍스트로 간편하게 영농 활동을 기록하세요</p>
+            </div>
+
+            <!-- 네비게이션 -->
+            <div class="flex gap-2 md:gap-4 mb-6">
+                <button onclick="setView('input')" id="btn-input" class="flex-1 py-3 px-3 md:px-6 rounded-xl font-semibold transition text-sm md:text-base bg-green-600 text-white">
+                    📝 일지 작성
+                </button>
+                <button onclick="setView('list')" id="btn-list" class="flex-1 py-3 px-3 md:px-6 rounded-xl font-semibold transition text-sm md:text-base bg-white text-gray-700">
+                    📅 목록 <span id="record-count">(0)</span>
+                </button>
+                <button onclick="setView('stats')" id="btn-stats" class="flex-1 py-3 px-3 md:px-6 rounded-xl font-semibold transition text-sm md:text-base bg-white text-gray-700">
+                    📊 통계
+                </button>
+            </div>
+
+            <!-- 메인 컨텐츠 -->
+            <div id="content"></div>
+        </div>
+    </div>
+
+    <script>
+        // 전역 변수
+        let currentView = 'input';
+        let inputMode = 'voice';
+        let records = [];
+        let currentRecord = null;
+        let recognition = null;
+        let isListening = false;
+
+        // 음성 인식 초기화
+        function initSpeechRecognition() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                recognition.lang = 'ko-KR';
+                recognition.continuous = false;
+                recognition.interimResults = false;
+
+                recognition.onresult = (event) => {
+                    const text = event.results[0][0].transcript;
+                    document.getElementById('input-text').value = text;
+                    analyzeText(text);
+                };
+
+                recognition.onerror = (event) => {
+                    console.error('음성 인식 오류:', event.error);
+                    isListening = false;
+                    updateMicButton();
+                    if (event.error === 'not-allowed') {
+                        alert('마이크 권한이 필요합니다. 브라우저 설정에서 마이크를 허용해주세요.');
+                    } else if (event.error === 'no-speech') {
+                        alert('음성이 감지되지 않았습니다. 다시 시도해주세요.');
+                    }
+                };
+
+                recognition.onend = () => {
+                    isListening = false;
+                    updateMicButton();
+                };
+
+                recognition.onstart = () => {
+                    isListening = true;
+                    updateMicButton();
+                };
+
+                return true;
+            }
+            return false;
+        }
+
+        // 텍스트 분석
+        function analyzeText(text) {
+            const crops = ['포도', '사과', '배', '딸기', '토마토', '오이', '고추', '상추', '배추', '무', '감자', '고구마', '옥수수', '쌀', '벼', '감귤', '귤', '복숭아', '자두', '참외', '수박'];
+            const tasks = ['살포', '파종', '수확', '관수', '물주기', '제초', '풀뽑기', '전정', '가지치기', '비료', '시비', '방제', '심기', '심었', '뿌렸', '수확했', '따기', '땄'];
+            const materials = ['영양제', '농약', '살충제', '제초제', '비료', '퇴비', '유기질비료', '복합비료', '요소', '살균제', '물', '거름'];
+
+            let detectedCrop = '';
+            let detectedTask = '';
+            let detectedMaterial = '';
+
+            crops.forEach(crop => {
+                if (text.includes(crop)) detectedCrop = crop;
+            });
+
+            tasks.forEach(task => {
+                if (text.includes(task)) detectedTask = task;
+            });
+
+            materials.forEach(material => {
+                if (text.includes(material)) detectedMaterial = material;
+            });
+
+            currentRecord = {
+                id: Date.now(),
+                date: new Date().toLocaleString('ko-KR', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }),
+                rawText: text,
+                crop: detectedCrop || '미분류',
+                task: detectedTask || '미분류',
+                material: detectedMaterial || '미사용',
+                timestamp: Date.now()
+            };
+
+            renderInputView();
+        }
+
+        // 마이크 토글
+        function toggleListening() {
+            if (!recognition) {
+                alert('이 브라우저는 음성 인식을 지원하지 않습니다. Chrome 브라우저를 사용해주세요.');
+                return;
+            }
+
+            if (isListening) {
+                recognition.stop();
+            } else {
+                document.getElementById('input-text').value = '';
+                currentRecord = null;
+                try {
+                    recognition.start();
+                } catch (error) {
+                    console.error('음성 인식 시작 오류:', error);
+                    alert('음성 인식을 시작할 수 없습니다. 페이지를 새로고침 후 다시 시도해주세요.');
+                }
+            }
+        }
+
+        // 마이크 버튼 업데이트
+        function updateMicButton() {
+            const btn = document.getElementById('mic-button');
+            const status = document.getElementById('mic-status');
+            if (btn && status) {
+                if (isListening) {
+                    btn.className = 'w-32 h-32 rounded-full mx-auto mb-4 transition-all transform hover:scale-105 bg-red-500 hover:bg-red-600 text-white shadow-2xl flex items-center justify-center animate-pulse';
+                    btn.innerHTML = '🔴';
+                    status.textContent = '🔴 듣고 있습니다...';
+                } else {
+                    btn.className = 'w-32 h-32 rounded-full mx-auto mb-4 transition-all transform hover:scale-105 bg-green-600 hover:bg-green-700 text-white shadow-2xl flex items-center justify-center';
+                    btn.innerHTML = '🎤';
+                    status.textContent = '마이크 버튼을 눌러 말씀하세요';
+                }
+            }
+        }
+
+        // 텍스트 제출
+        function handleTextSubmit() {
+            const text = document.getElementById('input-text').value.trim();
+            if (text) {
+                analyzeText(text);
+            }
+        }
+
+        // 기록 저장
+        function saveRecord() {
+            if (currentRecord) {
+                records.unshift(currentRecord);
+                localStorage.setItem('farmRecords', JSON.stringify(records));
+                currentRecord = null;
+                document.getElementById('input-text').value = '';
+                alert('영농일지가 저장되었습니다! 📝');
+                renderInputView();
+                updateRecordCount();
+            }
+        }
+
+        // 기록 삭제
+        function deleteRecord(id) {
+            if (confirm('이 기록을 삭제하시겠습니까?')) {
+                records = records.filter(r => r.id !== id);
+                localStorage.setItem('farmRecords', JSON.stringify(records));
+                renderListView();
+                updateRecordCount();
+            }
+        }
+
+        // 기록 카운트 업데이트
+        function updateRecordCount() {
+            document.getElementById('record-count').textContent = `(${records.length})`;
+        }
+
+        // 통계 계산
+        function getStats() {
+            const cropCount = {};
+            const taskCount = {};
+            const materialCount = {};
+
+            records.forEach(record => {
+                cropCount[record.crop] = (cropCount[record.crop] || 0) + 1;
+                taskCount[record.task] = (taskCount[record.task] || 0) + 1;
+                if (record.material !== '미사용') {
+                    materialCount[record.material] = (materialCount[record.material] || 0) + 1;
+                }
+            });
+
+            return { cropCount, taskCount, materialCount };
+        }
+
+        // 뷰 전환
+        function setView(view) {
+            currentView = view;
+            document.getElementById('btn-input').className = view === 'input' 
+                ? 'flex-1 py-3 px-3 md:px-6 rounded-xl font-semibold transition text-sm md:text-base bg-green-600 text-white'
+                : 'flex-1 py-3 px-3 md:px-6 rounded-xl font-semibold transition text-sm md:text-base bg-white text-gray-700';
+            document.getElementById('btn-list').className = view === 'list'
+                ? 'flex-1 py-3 px-3 md:px-6 rounded-xl font-semibold transition text-sm md:text-base bg-green-600 text-white'
+                : 'flex-1 py-3 px-3 md:px-6 rounded-xl font-semibold transition text-sm md:text-base bg-white text-gray-700';
+            document.getElementById('btn-stats').className = view === 'stats'
+                ? 'flex-1 py-3 px-3 md:px-6 rounded-xl font-semibold transition text-sm md:text-base bg-green-600 text-white'
+                : 'flex-1 py-3 px-3 md:px-6 rounded-xl font-semibold transition text-sm md:text-base bg-white text-gray-700';
+
+            if (view === 'input') renderInputView();
+            else if (view === 'list') renderListView();
+            else if (view === 'stats') renderStatsView();
+        }
+
+        // 입력 모드 전환
+        function setInputMode(mode) {
+            inputMode = mode;
+            renderInputView();
+        }
+
+        // 입력 뷰 렌더링
+        function renderInputView() {
+            const inputText = document.getElementById('input-text')?.value || '';
+            
+            let html = `
+                <div class="space-y-6">
+                    <div class="bg-white rounded-2xl shadow-lg p-6">
+                        <div class="flex gap-2 mb-4">
+                            <button onclick="setInputMode('voice')" class="flex-1 py-2 px-4 rounded-lg font-semibold transition ${inputMode === 'voice' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'}">
+                                🎤 음성 입력
+                            </button>
+                            <button onclick="setInputMode('text')" class="flex-1 py-2 px-4 rounded-lg font-semibold transition ${inputMode === 'text' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'}">
+                                ⌨️ 텍스트 입력
+                            </button>
+                        </div>
+            `;
+
+            if (inputMode === 'voice') {
+                html += `
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">🎤 음성으로 말씀해주세요</h3>
+                    <div class="text-center py-8">
+                        <button onclick="toggleListening()" id="mic-button" class="w-32 h-32 rounded-full mx-auto mb-4 transition-all transform hover:scale-105 bg-green-600 hover:bg-green-700 text-white shadow-2xl flex items-center justify-center">
+                            🎤
+                        </button>
+                        <p id="mic-status" class="text-xl font-semibold text-gray-700 mb-2">마이크 버튼을 눌러 말씀하세요</p>
+                        <p class="text-gray-500 text-sm">예: "포도에 영양제 살포했어", "토마토 수확했어"</p>
+                    </div>
+                    <input type="text" id="input-text" value="${inputText}" class="hidden">
+                `;
+            } else {
+                html += `
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">📝 영농 활동 입력</h3>
+                    <div class="space-y-4">
+                        <textarea id="input-text" placeholder='예: "포도에 영양제 살포했어", "토마토 수확했어", "오이에 물주기 했어"' class="w-full p-4 border-2 border-gray-300 rounded-xl focus:border-green-500 focus:outline-none resize-none text-lg" rows="4">${inputText}</textarea>
+                        <button onclick="handleTextSubmit()" class="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-xl font-semibold transition flex items-center justify-center gap-2">
+                            📨 분석하기
+                        </button>
+                    </div>
+                `;
+            }
+
+            html += `
+                        <div class="mt-4 p-4 bg-blue-50 rounded-lg">
+                            <p class="text-sm text-gray-700">💡 <strong>입력 예시:</strong> "포도에 영양제 살포했어", "사과 수확했어", "토마토에 물주기"</p>
+                        </div>
+                    </div>
+            `;
+
+            if (inputText && inputMode === 'voice') {
+                html += `
+                    <div class="bg-blue-50 rounded-2xl shadow-lg p-6">
+                        <h3 class="text-lg font-semibold text-blue-800 mb-3">🎤 인식된 음성</h3>
+                        <p class="text-gray-800 text-lg">${inputText}</p>
+                    </div>
+                `;
+            }
+
+            if (currentRecord) {
+                html += `
+                    <div class="bg-white rounded-2xl shadow-lg p-6">
+                        <h3 class="text-lg font-semibold text-green-800 mb-4 flex items-center gap-2">
+                            <span class="text-2xl">✅</span>
+                            자동 생성된 영농일지
+                        </h3>
+                        
+                        <div class="mb-4 p-4 bg-gray-50 rounded-lg">
+                            <p class="text-sm text-gray-600 mb-1">입력한 내용</p>
+                            <p class="text-gray-800 italic">"${currentRecord.rawText}"</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                            <div class="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border-2 border-green-200">
+                                <p class="text-sm text-gray-600 mb-1">📅 날짜/시간</p>
+                                <p class="text-base md:text-lg font-semibold text-gray-800">${currentRecord.date}</p>
+                            </div>
+                            <div class="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border-2 border-green-200">
+                                <p class="text-sm text-gray-600 mb-1">🌱 작물</p>
+                                <p class="text-base md:text-lg font-semibold text-green-700">${currentRecord.crop}</p>
+                            </div>
+                            <div class="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border-2 border-blue-200">
+                                <p class="text-sm text-gray-600 mb-1">🔧 작업</p>
+                                <p class="text-base md:text-lg font-semibold text-blue-700">${currentRecord.task}</p>
+                            </div>
+                            <div class="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg border-2 border-purple-200">
+                                <p class="text-sm text-gray-600 mb-1">💊 자재</p>
+                                <p class="text-base md:text-lg font-semibold text-purple-700">${currentRecord.material}</p>
+                            </div>
+                        </div>
+                        <button onclick="saveRecord()" class="w-full bg-green-600 hover:bg-green-700 text-white py-4 px-6 rounded-xl font-semibold transition flex items-center justify-center gap-2 text-lg">
+                            💾 영농일지 저장하기
+                        </button>
+                    </div>
+                `;
+            }
+
+            html += `</div>`;
+            document.getElementById('content').innerHTML = html;
+        }
+
+        // 목록 뷰 렌더링
+        function renderListView() {
+            let html = `
+                <div class="bg-white rounded-2xl shadow-lg p-6">
+                    <h2 class="text-xl md:text-2xl font-bold text-gray-800 mb-4">📅 영농일지 목록</h2>
+            `;
+
+            if (records.length === 0) {
+                html += `
+                    <div class="text-center py-12">
+                        <p class="text-gray-400 text-lg mb-2">📭</p>
+                        <p class="text-gray-500">아직 기록된 영농일지가 없습니다.</p>
+                        <p class="text-gray-400 text-sm mt-2">일지 작성 탭에서 첫 기록을 남겨보세요!</p>
+                    </div>
+                `;
+            } else {
+                html += `<div class="space-y-4">`;
+                records.forEach(record => {
+                    html += `
+                        <div class="border-2 border-gray-200 rounded-xl p-4 hover:shadow-md hover:border-green-300 transition">
+                            <div class="flex justify-between items-start mb-3">
+                                <p class="text-sm text-gray-600">${record.date}</p>
+                                <button onclick="deleteRecord(${record.id})" class="text-red-500 hover:text-red-700 transition p-1" title="삭제">
+                                    🗑️
+                                </button>
+                            </div>
+                            <div class="flex flex-wrap gap-2 mb-3">
+                                <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-semibold">🌱 ${record.crop}</span>
+                                <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">🔧 ${record.task}</span>
+                                ${record.material !== '미사용' ? `<span class="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-semibold">💊 ${record.material}</span>` : ''}
+                            </div>
+                            <p class="text-gray-700 italic bg-gray-50 p-3 rounded-lg">"${record.rawText}"</p>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+            }
+
+            html += `</div>`;
+            document.getElementById('content').innerHTML = html;
+        }
+
+        // 통계 뷰 렌더링
+        function renderStatsView() {
+            const stats = getStats();
+            let html = `<div class="space-y-6">`;
+
+            if (records.length === 0) {
+                html += `
+                    <div class="bg-white rounded-2xl shadow-lg p-12 text-center">
+                        <p class="text-gray-400 text-2xl mb-2">📊</p>
+                        <p class="text-gray-500">통계를 보려면 먼저 영농일지를 작성해주세요!</p>
+                    </div>
+                `;
+            } else {
+                html += `
+                    <div class="bg-gradient-to-r from-green-500 to-blue-500 rounded-2xl shadow-lg p-6 text-white">
+                        <h3 class="text-xl font-bold mb-4">📈 전체 요약</h3>
+                        <div class="grid grid-cols-3 gap-4">
+                            <div style="background: rgba(255,255,255,0.2)" class="rounded-lg p-4">
+                                <p class="text-sm" style="opacity: 0.9">총 기록</p>
+                                <p class="text-3xl font-bold">${records.length}건</p>
+                            </div>
+                            <div style="background: rgba(255,255,255,0.2)" class="rounded-lg p-4">
+                                <p class="text-sm" style="opacity: 0.9">관리 작물</p>
+                                <p class="text-3xl font-bold">${Object.keys(stats.cropCount).length}종</p>
+                            </div>
+                            <div style="background: rgba(255,255,255,0.2)" class="rounded-lg p-4">
+                                <p class="text-sm" style="opacity: 0.9">수행 작업</p>
+                                <p class="text-3xl font-bold">${Object.keys(stats.taskCount).length}종</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-lg p-6">
+                        <h2 class="text-xl md:text-2xl font-bold text-gray-800 mb-4">🌱 작물별 관리 현황</h2>
+                        <div class="space-y-3">
+                `;
+
+                Object.entries(stats.cropCount)
+                    .sort((a, b) => b[1] - a[1])
+                    .forEach(([crop, count]) => {
+                        const percentage = Math.max((count / records.length) * 100, 15);
+                        html += `
+                            <div class="flex items-center gap-4">
+                                <div class="w-20 md:w-24 font-semibold text-gray-700 text-sm md:text-base">${crop}</div>
+                                <div class="flex-1 bg-gray-200 rounded-full h-8 relative overflow-hidden">
+                                    <div class="bg-gradient-to-r from-green-400 to-green-600 h-8 rounded-full flex items-center justify-end pr-3 text-white font-semibold text-sm transition-all duration-500" style="width: ${percentage}%">
+                                        ${count}건
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                html += `
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-lg p-6">
+                        <h2 class="text-xl md:text-2xl font-bold text-gray-800 mb-4">🔧 작업 유형 분석</h2>
+                        <div class="space-y-3">
+                `;
+
+                Object.entries(stats.taskCount)
+                    .sort((a, b) => b[1] - a[1])
+                    .forEach(([task, count]) => {
+                        const percentage = Math.max((count / records.length) * 100, 15);
+                        html += `
+                            <div class="flex items-center gap-4">
+                                <div class="w-20 md:w-24 font-semibold text-gray-700 text-sm md:text-base">${task}</div>
+                                <div class="flex-1 bg-gray-200 rounded-full h-8 relative overflow-hidden">
+                                    <div class="bg-gradient-to-r from-blue-400 to-blue-600 h-8 rounded-full flex items-center justify-end pr-3 text-white font-semibold text-sm transition-all duration-500" style="width: ${percentage}%">
+                                        ${count}건
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                html += `</div></div>`;
+
+                if (Object.keys(stats.materialCount).length > 0) {
+                    html += `
+                        <div class="bg-white rounded-2xl shadow-lg p-6">
+                            <h2 class="text-xl md:text-2xl font-bold text-gray-800 mb-4">💊 자재 사용 현황</h2>
+                            <div class="space-y-3">
+                    `;
+
+                    Object.entries(stats.materialCount)
+                        .sort((a, b) => b[1] - a[1])
+                        .forEach(([material, count]) => {
+                            const percentage = Math.max((count / records.length) * 100, 15);
+                            html += `
+                                <div class="flex items-center gap-4">
+                                    <div class="w-20 md:w-24 font-semibold text-gray-700 text-sm md:text-base">${material}</div>
+                                    <div class="flex-1 bg-gray-200 rounded-full h-8 relative overflow-hidden">
+                                        <div class="bg-gradient-to-r from-purple-400 to-purple-600 h-8 rounded-full flex items-center justify-end pr-3 text-white font-semibold text-sm transition-all duration-500" style="width: ${percentage}%">
+                                            ${count}건
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+
+                    html += `</div></div>`;
+                }
+            }
+
+            html += `</div>`;
+            document.getElementById('content').innerHTML = html;
+        }
+
+        // 초기화
+        window.onload = function() {
+            // localStorage에서 데이터 로드
+            const savedRecords = localStorage.getItem('farmRecords');
+            if (savedRecords) {
+                records = JSON.parse(savedRecords);
+            }
+            
+            // 음성 인식 초기화
+            initSpeechRecognition();
+            
+            // 초기 뷰 렌더링
+            updateRecordCount();
+            renderInputView();
+        };
+    </script>
+</body>
+</html>
