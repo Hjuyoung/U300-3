@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#16a34a">
+    <title>🌾 영농일지</title>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #f0fdf4 0%, #dbeafe 100%);
+            min-height: 100vh;
+            padding: 1rem;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .header h1 {
+            color: #15803d;
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .header p {
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
+        
+        .nav {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .nav button {
+            flex: 1;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .nav button.active {
+            background: #16a34a;
+            color: white;
+        }
+        
+        .nav button:not(.active) {
+            background: white;
+            color: #374151;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .card h3 {
+            color: #1f2937;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .mode-switch {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .mode-switch button {
+            flex: 1;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .mode-switch button.active {
+            background: #16a34a;
+            color: white;
+        }
+        
+        .mode-switch button:not(.active) {
+            background: #e5e7eb;
+            color: #374151;
+        }
+        
+        .mic-container {
+            text-align: center;
+            padding: 2rem 0;
+        }
+        
+        .mic-button {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: none;
+            font-size: 3rem;
+            cursor: pointer;
+            margin-bottom: 1rem;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            transition: all 0.2s;
+        }
+        
+        .mic-button:hover {
+            transform: scale(1.05);
+        }
+        
+        .mic-button.listening {
+            background: #dc2626;
+            animation: pulse 2s infinite;
+        }
+        
+        .mic-button:not(.listening) {
+            background: #16a34a;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .mic-status {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+        
+        .mic-hint {
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
+        
+        textarea {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid #d1d5db;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            resize: none;
+            font-family: inherit;
+            margin-bottom: 1rem;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #16a34a;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        
+        .btn-primary {
+            background: #16a34a;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #15803d;
+        }
+        
+        .btn-primary:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        
+        .info-box {
+            background: #dbeafe;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+        }
+        
+        .info-box p {
+            color: #1e40af;
+            font-size: 0.9rem;
+        }
+        
+        .result-box {
+            background: #f3f4f6;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .result-label {
+            color: #6b7280;
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .result-value {
+            color: #1f2937;
+            font-style: italic;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .stat-card {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: 2px solid;
+        }
+        
+        .stat-card.green {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border-color: #bbf7d0;
+        }
+        
+        .stat-card.blue {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            border-color: #bfdbfe;
+        }
+        
+        .stat-card.purple {
+            background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+            border-color: #e9d5ff;
+        }
+        
+        .record-item {
+            border: 2px solid #e5e7eb;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            transition: all 0.2s;
+        }
+        
+        .record-item:hover {
+            border-color: #16a34a;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .record-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 0.75rem;
+        }
+        
+        .record-date {
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
+        
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #ef4444;
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 0.25rem;
+        }
+        
+        .delete-btn:hover {
+            color: #dc2626;
+        }
+        
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .tag {
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        .tag.green {
+            background: #dcfce7;
+            color: #15803d;
+        }
+        
+        .tag.blue {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .tag.purple {
+            background: #f3e8ff;
+            color: #7c3aed;
+        }
+        
+        .record-text {
+            background: #f9fafb;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            color: #374151;
+            font-style: italic;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #9ca3af;
+        }
+        
+        .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        .summary-card {
+            background: linear-gradient(135deg, #16a34a 0%, #2563eb 100%);
+            color: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .summary-item {
+            background: rgba(255,255,255,0.2);
+            padding: 1rem;
+            border-radius: 0.5rem;
+        }
+        
+        .summary-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-bottom: 0.25rem;
+        }
+        
+        .summary-value {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+        
+        .stat-bar-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .stat-label {
+            min-width: 80px;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .stat-bar-bg {
+            flex: 1;
+            background: #e5e7eb;
+            height: 32px;
+            border-radius: 1rem;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .stat-bar {
+            height: 100%;
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 0.75rem;
+            color: white;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: width 0.5s ease;
+        }
+        
+        .stat-bar.green {
+            background: linear-gradient(90deg, #4ade80 0%, #16a34a 100%);
+        }
+        
+        .stat-bar.blue {
+            background: linear-gradient(90deg, #60a5fa 0%, #2563eb 100%);
+        }
+        
+        .stat-bar.purple {
+            background: linear-gradient(90deg, #a78bfa 0%, #7c3aed 100%);
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.25rem;
+            }
+            
+            .mic-button {
+                width: 100px;
+                height: 100px;
+                font-size: 2.5rem;
+            }
+            
+            .summary-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 0.5rem;
+            }
+            
+            .summary-value {
+                font-size: 1.5rem;
+            }
+            
+            .stat-label {
+                min-width: 60px;
+                font-size: 0.9rem;
+            }
+        }
+        
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            
+            .container {
+                max-width: 100%;
+            }
+            
+            .header, .nav {
+                display: none !important;
+            }
+            
+            .card {
+                box-shadow: none;
+                padding: 0;
+            }
+            
+            button {
+                display: none !important;
+            }
+            
+            table {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌾 음성 기반 영농일지 시스템</h1>
+            <p>음성이나 텍스트로 간편하게 영농 활동을 기록하세요</p>
+        </div>
+
+        <div class="nav">
+            <button id="btn-input" class="active">📝 일지 작성</button>
+            <button id="btn-list">📅 목록 <span id="record-count">(0)</span></button>
+            <button id="btn-stats">📊 통계</button>
+            <button id="btn-report">📋 영농일지</button>
+        </div>
+
+        <div id="content"></div>
+    </div>
+
+    <script>
+        let currentView = 'input';
+        let inputMode = 'voice';
+        let records = [];
+        let currentRecord = null;
+        let recognition = null;
+        let isListening = false;
+
+        // 동사 어미 제거 함수
+        function normalizeVerb(text) {
+            text = text.replace(/했어요?/g, '');
+            text = text.replace(/했고/g, '');
+            text = text.replace(/했는데/g, '');
+            text = text.replace(/했다/g, '');
+            text = text.replace(/했음/g, '');
+            text = text.replace(/했습니다/g, '');
+            text = text.replace(/해요?/g, '');
+            text = text.replace(/하고/g, '');
+            text = text.replace(/합니다/g, '');
+            text = text.replace(/한다/g, '');
+            text = text.replace(/이야/g, '');
+            text = text.replace(/이에요/g, '');
+            text = text.replace(/예요/g, '');
+            text = text.replace(/입니다/g, '');
+            text = text.replace(/이다/g, '');
+            text = text.replace(/어서/g, '');
+            text = text.replace(/아서/g, '');
+            
+            return text.trim();
+        }
+
+        // 한글 숫자를 아라비아 숫자로 변환
+        function convertKoreanNumbersToArabic(text) {
+            // 한글 숫자 매핑
+            const koreanNumbers = {
+                '영': 0, '공': 0,
+                '일': 1, '한': 1,
+                '이': 2, '두': 2,
+                '삼': 3, '세': 3,
+                '사': 4, '네': 4,
+                '오': 5, '다섯': 5,
+                '육': 6, '여섯': 6,
+                '칠': 7, '일곱': 7,
+                '팔': 8, '여덟': 8,
+                '구': 9, '아홉': 9
+            };
+            
+            const units = {
+                '십': 10,
+                '백': 100,
+                '천': 1000,
+                '만': 10000
+            };
+
+            // "백상자" → "100상자", "오십킬로" → "50킬로" 등 변환
+            let result = text;
+            
+            // 간단한 패턴: 백, 천, 만 등을 숫자로 변환
+            result = result.replace(/백(\d*)(상자|킬로|kg|포대|개|톤)/gi, (match, num, unit) => {
+                return `100${unit}`;
+            });
+            
+            result = result.replace(/천(\d*)(상자|킬로|kg|포대|개|톤)/gi, (match, num, unit) => {
+                return `1000${unit}`;
+            });
+
+            // "오십" → "50", "삼십" → "30" 등
+            result = result.replace(/(일|이|삼|사|오|육|칠|팔|구)?십/g, (match, prefix) => {
+                const num = prefix ? koreanNumbers[prefix] : 1;
+                return (num * 10).toString();
+            });
+
+            // "오백" → "500", "삼백" → "300" 등
+            result = result.replace(/(일|이|삼|사|오|육|칠|팔|구)?백/g, (match, prefix) => {
+                const num = prefix ? koreanNumbers[prefix] : 1;
+                return (num * 100).toString();
+            });
+
+            // "이천" → "2000", "삼천" → "3000" 등
+            result = result.replace(/(일|이|삼|사|오|육|칠|팔|구)?천/g, (match, prefix) => {
+                const num = prefix ? koreanNumbers[prefix] : 1;
+                return (num * 1000).toString();
+            });
+
+            // 단순 한글 숫자 → 아라비아 숫자
+            Object.keys(koreanNumbers).forEach(key => {
+                const regex = new RegExp(key + '(?=상자|킬로|kg|포대|개|톤|등급)', 'g');
+                result = result.replace(regex, koreanNumbers[key].toString());
+            });
+
+            // "특품" 등급 처리
+            result = result.replace(/1등급/g, '1등급');
+            result = result.replace(/일등급/g, '1등급');
+            
+            return result;
+        }
+
+        function initSpeechRecognition() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                recognition.lang = 'ko-KR';
+                recognition.continuous = false;
+                recognition.interimResults = false;
+
+                recognition.onresult = (event) => {
+                    const text = event.results[0][0].transcript;
+                    document.getElementById('input-text').value = text;
+                    analyzeText(text);
+                };
+
+                recognition.onerror = (event) => {
+                    isListening = false;
+                    updateMicButton();
+                    if (event.error === 'not-allowed') {
+                        alert('마이크 권한이 필요합니다.');
+                    } else if (event.error === 'no-speech') {
+                        alert('음성이 감지되지 않았습니다.');
+                    }
+                };
+
+                recognition.onend = () => {
+                    isListening = false;
+                    updateMicButton();
+                };
+
+                recognition.onstart = () => {
+                    isListening = true;
+                    updateMicButton();
+                };
+
+                return true;
+            }
+            return false;
+        }
+
+        function analyzeText(text) {
+            // 먼저 한글 숫자를 아라비아 숫자로 변환
+            text = convertKoreanNumbersToArabic(text);
+            
+            const crops = [
+                '포도', '사과', '배', '딸기', '복숭아', '자두', '감', '밤', '대추', '매실', '살구', '앵두', 
+                '감귤', '귤', '한라봉', '천혜향', '레드향', '블루베리', '키위', '무화과', '석류', '오디',
+                '토마토', '오이', '고추', '상추', '배추', '무', '당근', '양파', '마늘', '파', '쪽파', '대파',
+                '시금치', '깻잎', '호박', '가지', '피망', '파프리카', '브로콜리', '양배추', '콩', '완두콩',
+                '강낭콩', '옥수수', '감자', '고구마', '생강', '우엉', '연근', '열무', '갓', '쑥갓',
+                '벼', '쌀', '보리', '밀', '팥', '녹두', '수수', '조', '기장',
+                '참깨', '들깨', '땅콩', '고구마순', '더덕', '도라지', '인삼', '수삼', '버섯'
+            ];
+
+            const harvestTasks = ['수확', '따기', '따', '땄', '베기', '베', '베어', '캐기', '캐', '캤', '거두기', '거두', '거뒀'];
+            const shipmentTasks = ['출하', '판매', '팔', '팔았', '납품', '배송', '운송', '직거래', '도매'];
+
+            let detectedCrop = '';
+            let detectedTask = '';
+            let cleanTask = '';
+            let quantity = '';
+            let unit = '';
+            let quality = '';
+            let storage = '';
+            let buyer = '';
+            let workCategory = '';
+
+            crops.forEach(crop => {
+                if (text.includes(crop)) detectedCrop = crop;
+            });
+
+            let isHarvest = false;
+            harvestTasks.forEach(task => {
+                if (text.includes(task)) {
+                    detectedTask = text.match(new RegExp(`\\S*${task}\\S*`))[0];
+                    cleanTask = '수확';
+                    workCategory = '생산작업';
+                    isHarvest = true;
+                }
+            });
+
+            shipmentTasks.forEach(task => {
+                if (text.includes(task)) {
+                    detectedTask = text.match(new RegExp(`\\S*${task}\\S*`))[0];
+                    cleanTask = normalizeVerb(detectedTask);
+                    if (!cleanTask) cleanTask = '출하';
+                    workCategory = '출하작업';
+                }
+            });
+
+            const quantityMatch = text.match(/(\d+(?:\.\d+)?)\s*(kg|KG|Kg|킬로|키로|톤|t|T|상자|박스|포대|자루|개|송이|다발|말)/i);
+            if (quantityMatch) {
+                quantity = quantityMatch[1];
+                unit = quantityMatch[2];
+            }
+
+            const qualityKeywords = ['특품', '상품', '중품', '하품', 'A급', 'B급', 'C급', '1등급', '2등급', '3등급', '특등', '특'];
+            qualityKeywords.forEach(qual => {
+                if (text.includes(qual)) quality = qual;
+            });
+
+            const storageKeywords = ['저온창고', '냉장고', '창고', '저장', '보관', '냉동', '실온'];
+            storageKeywords.forEach(stor => {
+                if (text.includes(stor)) storage = stor;
+            });
+
+            const buyerKeywords = ['농협', '도매시장', '마트', '직거래', '소비자', '납품', '대형마트', '로컬푸드', '온라인', '직판장'];
+            buyerKeywords.forEach(buy => {
+                if (text.includes(buy)) buyer = buy;
+            });
+
+            currentRecord = {
+                id: Date.now(),
+                date: new Date().toLocaleString('ko-KR', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }),
+                rawText: text,
+                crop: detectedCrop || '미분류',
+                task: cleanTask || normalizeVerb(detectedTask) || '미분류',
+                originalTask: detectedTask,
+                material: '미사용',
+                workCategory: workCategory || '기타작업',
+                quantity: quantity,
+                unit: unit,
+                quality: quality,
+                storage: storage,
+                buyer: buyer,
+                timestamp: Date.now()
+            };
+
+            renderInputView();
+        }
+
+        function toggleListening() {
+            if (!recognition) {
+                alert('이 브라우저는 음성 인식을 지원하지 않습니다.');
+                return;
+            }
+
+            if (isListening) {
+                recognition.stop();
+            } else {
+                document.getElementById('input-text').value = '';
+                currentRecord = null;
+                try {
+                    recognition.start();
+                } catch (error) {
+                    alert('음성 인식을 시작할 수 없습니다.');
+                }
+            }
+        }
+
+        function updateMicButton() {
+            const btn = document.getElementById('mic-button');
+            const status = document.getElementById('mic-status');
+            if (btn && status) {
+                if (isListening) {
+                    btn.className = 'mic-button listening';
+                    btn.innerHTML = '🔴';
+                    status.textContent = '🔴 듣고 있습니다...';
+                } else {
+                    btn.className = 'mic-button';
+                    btn.innerHTML = '🎤';
+                    status.textContent = '마이크 버튼을 눌러 말씀하세요';
+                }
+            }
+        }
+
+        function handleTextSubmit() {
+            const text = document.getElementById('input-text').value.trim();
+            if (text) {
+                analyzeText(text);
+            }
+        }
+
+        function saveRecord() {
+            if (currentRecord) {
+                records.unshift(currentRecord);
+                currentRecord = null;
+                document.getElementById('input-text').value = '';
+                alert('영농일지가 저장되었습니다! 📝');
+                renderInputView();
+                updateRecordCount();
+            }
+        }
+
+        function deleteRecord(id) {
+            if (confirm('이 기록을 삭제하시겠습니까?')) {
+                records = records.filter(r => r.id !== id);
+                renderListView();
+                updateRecordCount();
+            }
+        }
+
+        function updateRecordCount() {
+            document.getElementById('record-count').textContent = `(${records.length})`;
+        }
+
+        function setView(view) {
+            currentView = view;
+            document.getElementById('btn-input').className = view === 'input' ? 'active' : '';
+            document.getElementById('btn-list').className = view === 'list' ? 'active' : '';
+            document.getElementById('btn-stats').className = view === 'stats' ? 'active' : '';
+            document.getElementById('btn-report').className = view === 'report' ? 'active' : '';
+
+            if (view === 'input') renderInputView();
+            else if (view === 'list') renderListView();
+            else if (view === 'stats') renderStatsView();
+            else if (view === 'report') renderReportView();
+        }
+
+        function setInputMode(mode) {
+            inputMode = mode;
+            renderInputView();
+        }
+
+        function renderInputView() {
+            const inputText = document.getElementById('input-text')?.value || '';
+            
+            let html = '<div class="card">';
+            html += '<div class="mode-switch">';
+            html += `<button class="${inputMode === 'voice' ? 'active' : ''}" onclick="setInputMode('voice')">🎤 음성 입력</button>`;
+            html += `<button class="${inputMode === 'text' ? 'active' : ''}" onclick="setInputMode('text')">⌨️ 텍스트 입력</button>`;
+            html += '</div>';
+
+            if (inputMode === 'voice') {
+                html += '<h3>🎤 음성으로 말씀해주세요</h3>';
+                html += '<div class="mic-container">';
+                html += '<button id="mic-button" class="mic-button" onclick="toggleListening()">🎤</button>';
+                html += '<p id="mic-status" class="mic-status">마이크 버튼을 눌러 말씀하세요</p>';
+                html += '<p class="mic-hint">예: "사과 100상자 수확했어 특품"</p>';
+                html += '</div>';
+                html += `<input type="text" id="input-text" value="${inputText}" style="display:none;">`;
+            } else {
+                html += '<h3>📝 영농 활동 입력</h3>';
+                html += `<textarea id="input-text" placeholder='예: "사과 100상자 수확했어", "포도 50킬로 농협에 출하했어"' rows="4">${inputText}</textarea>`;
+                html += '<button class="btn btn-primary" onclick="handleTextSubmit()">🔨 분석하기</button>';
+            }
+
+            html += '<div class="info-box">';
+            html += '<p>💡 <strong>입력 예시:</strong> "사과 100상자 수확했어 특품", "토마토 수확해서 저온창고에 보관했어"</p>';
+            html += '</div></div>';
+
+            if (inputText && inputMode === 'voice') {
+                html += '<div class="card">';
+                html += '<h3>🎤 인식된 음성</h3>';
+                html += `<p style="font-size: 1.1rem; color: #374151;">${inputText}</p>`;
+                html += '</div>';
+            }
+
+            if (currentRecord) {
+                html += '<div class="card">';
+                html += '<h3><span style="font-size: 1.5rem;">✅</span> 자동 생성된 영농일지</h3>';
+                html += '<div class="result-box">';
+                html += '<p class="result-label">입력한 내용</p>';
+                html += `<p class="result-value">"${currentRecord.rawText}"</p>`;
+                html += '</div>';
+                html += '<div class="grid">';
+                html += '<div class="stat-card green">';
+                html += '<p class="result-label">📅 날짜/시간</p>';
+                html += `<p style="font-weight: 600; color: #1f2937;">${currentRecord.date}</p>`;
+                html += '</div>';
+                html += '<div class="stat-card green">';
+                html += '<p class="result-label">🌱 작물</p>';
+                html += `<p style="font-weight: 600; color: #15803d; font-size: 1.2rem;">${currentRecord.crop}</p>`;
+                html += '</div>';
+                html += '<div class="stat-card blue">';
+                html += '<p class="result-label">🔧 작업</p>';
+                html += `<p style="font-weight: 600; color: #1e40af; font-size: 1.2rem;">${currentRecord.task}</p>`;
+                html += '</div>';
+                
+                if (currentRecord.quantity && currentRecord.unit) {
+                    html += '<div class="stat-card purple">';
+                    html += '<p class="result-label">📦 수량</p>';
+                    html += `<p style="font-weight: 600; color: #7c3aed; font-size: 1.2rem;">${currentRecord.quantity}${currentRecord.unit}</p>`;
+                    html += '</div>';
+                }
+                
+                if (currentRecord.quality) {
+                    html += '<div class="stat-card purple">';
+                    html += '<p class="result-label">⭐ 품질</p>';
+                    html += `<p style="font-weight: 600; color: #7c3aed; font-size: 1.2rem;">${currentRecord.quality}</p>`;
+                    html += '</div>';
+                }
+                
+                if (currentRecord.buyer) {
+                    html += '<div class="stat-card blue">';
+                    html += '<p class="result-label">🏪 출하처</p>';
+                    html += `<p style="font-weight: 600; color: #1e40af; font-size: 1.2rem;">${currentRecord.buyer}</p>`;
+                    html += '</div>';
+                }
+                
+                if (currentRecord.storage) {
+                    html += '<div class="stat-card green">';
+                    html += '<p class="result-label">📦 저장</p>';
+                    html += `<p style="font-weight: 600; color: #15803d; font-size: 1.2rem;">${currentRecord.storage}</p>`;
+                    html += '</div>';
+                }
+                
+                html += '</div>';
+                html += '<button class="btn btn-primary" onclick="saveRecord()" style="font-size: 1.1rem;">💾 영농일지 저장하기</button>';
+                html += '</div>';
+            }
+
+            document.getElementById('content').innerHTML = html;
+        }
+
+        function renderListView() {
+            let html = '<div class="card">';
+            html += '<h3>📅 영농일지 목록</h3>';
+
+            if (records.length === 0) {
+                html += '<div class="empty-state">';
+                html += '<div class="empty-icon">🔭</div>';
+                html += '<p>아직 기록된 영농일지가 없습니다.</p>';
+                html += '<p style="font-size: 0.9rem; margin-top: 0.5rem;">일지 작성 탭에서 첫 기록을 남겨보세요!</p>';
+                html += '</div>';
+            } else {
+                records.forEach(record => {
+                    html += '<div class="record-item">';
+                    html += '<div class="record-header">';
+                    html += `<div><span class="record-date">${record.date}</span>`;
+                    if (record.workCategory && record.workCategory !== '미사용') {
+                        html += `<span class="tag" style="background: #fef3c7; color: #92400e; margin-left: 0.5rem;">${record.workCategory}</span>`;
+                    }
+                    html += `</div>`;
+                    html += `<button class="delete-btn" onclick="deleteRecord(${record.id})">🗑️</button>`;
+                    html += '</div>';
+                    html += '<div class="tags">';
+                    html += `<span class="tag green">🌱 ${record.crop}</span>`;
+                    html += `<span class="tag blue">🔧 ${record.task}</span>`;
+                    if (record.quantity && record.unit) {
+                        html += `<span class="tag purple">📦 ${record.quantity}${record.unit}</span>`;
+                    }
+                    if (record.quality) {
+                        html += `<span class="tag purple">⭐ ${record.quality}</span>`;
+                    }
+                    if (record.buyer) {
+                        html += `<span class="tag blue">🏪 ${record.buyer}</span>`;
+                    }
+                    html += '</div>';
+                    html += `<div class="record-text">"${record.rawText}"</div>`;
+                    html += '</div>';
+                });
+            }
+
+            html += '</div>';
+            document.getElementById('content').innerHTML = html;
+        }
+
+        function renderStatsView() {
+            let html = '<div>';
+
+            if (records.length === 0) {
+                html += '<div class="card"><div class="empty-state">';
+                html += '<div class="empty-icon">📊</div>';
+                html += '<p>통계를 보려면 먼저 영농일지를 작성해주세요!</p>';
+                html += '</div></div>';
+            } else {
+                const cropCount = {};
+                const taskCount = {};
+                
+                records.forEach(record => {
+                    cropCount[record.crop] = (cropCount[record.crop] || 0) + 1;
+                    taskCount[record.task] = (taskCount[record.task] || 0) + 1;
+                });
+
+                html += '<div class="summary-card">';
+                html += '<h3>📈 전체 요약</h3>';
+                html += '<div class="summary-grid">';
+                html += '<div class="summary-item">';
+                html += '<p class="summary-label">총 기록</p>';
+                html += `<p class="summary-value">${records.length}건</p>`;
+                html += '</div>';
+                html += '<div class="summary-item">';
+                html += '<p class="summary-label">관리 작물</p>';
+                html += `<p class="summary-value">${Object.keys(cropCount).length}종</p>`;
+                html += '</div>';
+                html += '<div class="summary-item">';
+                html += '<p class="summary-label">수행 작업</p>';
+                html += `<p class="summary-value">${Object.keys(taskCount).length}종</p>`;
+                html += '</div>';
+                html += '</div></div>';
+
+                html += '<div class="card">';
+                html += '<h3>🌱 작물별 관리 현황</h3>';
+                Object.entries(cropCount)
+                    .sort((a, b) => b[1] - a[1])
+                    .forEach(([crop, count]) => {
+                        const percentage = Math.max((count / records.length) * 100, 15);
+                        html += '<div class="stat-bar-container">';
+                        html += `<div class="stat-label">${crop}</div>`;
+                        html += '<div class="stat-bar-bg">';
+                        html += `<div class="stat-bar green" style="width: ${percentage}%">${count}건</div>`;
+                        html += '</div></div>';
+                    });
+                html += '</div>';
+
+                html += '<div class="card">';
+                html += '<h3>🔧 작업 유형 분석</h3>';
+                Object.entries(taskCount)
+                    .sort((a, b) => b[1] - a[1])
+                    .forEach(([task, count]) => {
+                        const percentage = Math.max((count / records.length) * 100, 15);
+                        html += '<div class="stat-bar-container">';
+                        html += `<div class="stat-label">${task}</div>`;
+                        html += '<div class="stat-bar-bg">';
+                        html += `<div class="stat-bar blue" style="width: ${percentage}%">${count}건</div>`;
+                        html += '</div></div>';
+                    });
+                html += '</div>';
+            }
+
+            html += '</div>';
+            document.getElementById('content').innerHTML = html;
+        }
+
+        function renderReportView() {
+            let html = '<div class="card">';
+            html += '<h3>📋 영농일지 출력</h3>';
+
+            if (records.length === 0) {
+                html += '<div class="empty-state">';
+                html += '<div class="empty-icon">📋</div>';
+                html += '<p>기록이 없어서 영농일지를 생성할 수 없습니다.</p>';
+                html += '</div></div>';
+                document.getElementById('content').innerHTML = html;
+                return;
+            }
+
+            const monthlyData = {};
+            records.forEach(record => {
+                const date = new Date(record.timestamp);
+                const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                if (!monthlyData[yearMonth]) {
+                    monthlyData[yearMonth] = [];
+                }
+                monthlyData[yearMonth].push(record);
+            });
+
+            html += '<div style="margin-bottom: 1.5rem;">';
+            html += '<label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">조회할 월 선택:</label>';
+            html += '<select id="month-select" onchange="generateMonthlyReport()" style="width: 100%; padding: 0.75rem; border: 2px solid #d1d5db; border-radius: 0.5rem; font-size: 1rem;">';
+            html += '<option value="">-- 월 선택 --</option>';
+            Object.keys(monthlyData).sort().reverse().forEach(month => {
+                const [year, m] = month.split('-');
+                html += `<option value="${month}">${year}년 ${parseInt(m)}월</option>`;
+            });
+            html += '</select></div>';
+
+            html += '<div id="monthly-report-container"></div>';
+            html += '</div>';
+
+            document.getElementById('content').innerHTML = html;
+        }
+
+        function generateMonthlyReport() {
+            const selectedMonth = document.getElementById('month-select').value;
+            if (!selectedMonth) {
+                document.getElementById('monthly-report-container').innerHTML = '';
+                return;
+            }
+
+            const monthRecords = records.filter(record => {
+                const date = new Date(record.timestamp);
+                const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                return yearMonth === selectedMonth;
+            });
+
+            const dailyData = {};
+            monthRecords.forEach(record => {
+                const date = new Date(record.timestamp);
+                const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                if (!dailyData[dateKey]) {
+                    dailyData[dateKey] = [];
+                }
+                dailyData[dateKey].push(record);
+            });
+
+            const [year, month] = selectedMonth.split('-');
+            
+            let html = '<div style="background: white; padding: 2rem; border-radius: 1rem; border: 2px solid #e5e7eb;">';
+            html += `<div style="text-align: center; margin-bottom: 2rem; border-bottom: 3px solid #16a34a; padding-bottom: 1rem;">`;
+            html += `<h2 style="font-size: 2rem; color: #1f2937; margin-bottom: 0.5rem;">영농일지</h2>`;
+            html += `<p style="font-size: 1.2rem; color: #6b7280;">${year}년 ${parseInt(month)}월</p>`;
+            html += `</div>`;
+
+            html += '<table style="width: 100%; border-collapse: collapse; margin-bottom: 2rem;">';
+            html += '<thead>';
+            html += '<tr style="background: #f3f4f6; border: 2px solid #374151;">';
+            html += '<th style="padding: 1rem; border: 1px solid #374151; width: 15%;">년월일</th>';
+            html += '<th style="padding: 1rem; border: 1px solid #374151; width: 25%;">주요 농작업</th>';
+            html += '<th style="padding: 1rem; border: 1px solid #374151; width: 30%;">농자재 사용내역<br>(비료, 약재)</th>';
+            html += '<th style="padding: 1rem; border: 1px solid #374151; width: 30%;">생산, 출하 내역</th>';
+            html += '</tr>';
+            html += '</thead>';
+            html += '<tbody>';
+
+            const sortedDates = Object.keys(dailyData).sort();
+            
+            sortedDates.forEach(dateKey => {
+                const dayRecords = dailyData[dateKey];
+                const [y, m, d] = dateKey.split('-');
+                
+                const mainWorks = [];
+                const materials = [];
+                const productions = [];
+
+                dayRecords.forEach(record => {
+                    if (record.task !== '미분류') {
+                        const workText = `${record.crop} ${record.task}`;
+                        if (!mainWorks.includes(workText)) {
+                            mainWorks.push(workText);
+                        }
+                    }
+
+                    if (record.workCategory === '생산작업' || record.workCategory === '출하작업') {
+                        let productionText = `${record.crop} ${record.task}`;
+                        
+                        const details = [];
+                        if (record.quantity && record.unit) {
+                            details.push(`${record.quantity}${record.unit}`);
+                        }
+                        if (record.quality) {
+                            details.push(record.quality);
+                        }
+                        if (record.storage) {
+                            details.push(record.storage);
+                        }
+                        if (record.buyer) {
+                            details.push(record.buyer);
+                        }
+                        
+                        if (details.length > 0) {
+                            productionText += ` (${details.join(', ')})`;
+                        }
+                        
+                        if (!productions.includes(productionText)) {
+                            productions.push(productionText);
+                        }
+                    }
+                });
+
+                html += '<tr>';
+                html += `<td style="padding: 0.75rem; border: 1px solid #d1d5db; text-align: center; font-weight: 600;">${parseInt(m)}/${parseInt(d)}</td>`;
+                html += `<td style="padding: 0.75rem; border: 1px solid #d1d5db; vertical-align: top;">${mainWorks.join('<br>') || '-'}</td>`;
+                html += `<td style="padding: 0.75rem; border: 1px solid #d1d5db; vertical-align: top;">${materials.join('<br>') || '-'}</td>`;
+                html += `<td style="padding: 0.75rem; border: 1px solid #d1d5db; vertical-align: top;">${productions.join('<br>') || '-'}</td>`;
+                html += '</tr>';
+            });
+
+            const emptyRows = Math.max(0, 6 - sortedDates.length);
+            for (let i = 0; i < emptyRows; i++) {
+                html += '<tr>';
+                html += '<td style="padding: 1.5rem; border: 1px solid #d1d5db;">&nbsp;</td>';
+                html += '<td style="padding: 1.5rem; border: 1px solid #d1d5db;">&nbsp;</td>';
+                html += '<td style="padding: 1.5rem; border: 1px solid #d1d5db;">&nbsp;</td>';
+                html += '<td style="padding: 1.5rem; border: 1px solid #d1d5db;">&nbsp;</td>';
+                html += '</tr>';
+            }
+
+            html += '</tbody>';
+            html += '</table>';
+
+            html += '<div style="text-align: center; margin-top: 2rem;">';
+            html += '<button onclick="printReport()" class="btn btn-primary" style="width: auto; padding: 1rem 2rem;">🖨️ 영농일지 인쇄하기</button>';
+            html += '</div>';
+
+            html += '</div>';
+
+            document.getElementById('monthly-report-container').innerHTML = html;
+        }
+
+        function printReport() {
+            window.print();
+        }
+
+        // 이벤트 리스너 설정
+        document.addEventListener('DOMContentLoaded', function() {
+            initSpeechRecognition();
+            updateRecordCount();
+            renderInputView();
+            
+            // 네비게이션 버튼 이벤트
+            document.getElementById('btn-input').addEventListener('click', () => setView('input'));
+            document.getElementById('btn-list').addEventListener('click', () => setView('list'));
+            document.getElementById('btn-stats').addEventListener('click', () => setView('stats'));
+            document.getElementById('btn-report').addEventListener('click', () => setView('report'));
+        });
+    </script>
+</body>
+</html>
